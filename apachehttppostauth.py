@@ -6,7 +6,8 @@ import urllib
 import urllib2
 
 IGNORE_SSL_ERRORS = False
-REQUIRE_SUCCESS_STATUS_IN_JSON_RESPONSE = False
+IGNORE_UNEXPECTED_STATUS_CODES = False
+REQUIRE_JSON_SUCCESS_STATUS_IN_RESPONSE = False
 USERNAME_PARAM_NAME = 'username'
 PASSWORD_PARAM_NAME = 'password'
 
@@ -23,15 +24,20 @@ def authenticate(url, username, password):
     try:
         response = urllib2.urlopen(request, context=ssl_context)
     except urllib2.HTTPError as e:
-        if e.code == 403:
+        if e.code == 403 or IGNORE_UNEXPECTED_STATUS_CODES:
             return False
         raise
 
-    return not REQUIRE_SUCCESS_STATUS_IN_JSON_RESPONSE or contains_success_status(response)
+    return not REQUIRE_JSON_SUCCESS_STATUS_IN_RESPONSE or contains_success_status(response)
 
 
 def contains_success_status(response):
-    json_response = json.loads(response.read())
+    try:
+        json_response = json.loads(response.read())
+    except ValueError:
+        return False
+
+    # `status` may not exist, or it may not be a string.
     status = str(json_response.get('status')).lower()
     return status == 'success'
 
@@ -40,6 +46,7 @@ if __name__ == '__main__' and len(sys.argv) == 2:
     url = sys.argv[1]
     username = sys.stdin.readline().strip()
     password = sys.stdin.readline().strip()
+
     if authenticate(url, username, password):
         exit(0)
 
