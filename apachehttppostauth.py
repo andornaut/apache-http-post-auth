@@ -17,7 +17,7 @@ def authenticate(url, username, password):
     request = urllib2.Request(url, data)
 
     ssl_context = ssl.create_default_context()
-    if not IGNORE_SSL_ERRORS:
+    if IGNORE_SSL_ERRORS:
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
 
